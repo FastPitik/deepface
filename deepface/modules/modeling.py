@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # built-in dependencies
-from typing import TYPE_CHECKING, Any, Final, TypedDict
+from typing import TYPE_CHECKING, Any, Final, TypedDict, Dict
 
 # project dependencies
 from deepface.models.facial_recognition import (
@@ -30,11 +30,14 @@ from deepface.models.face_detection import (
 )
 from deepface.models.demography import Age, Gender, Race, Emotion
 from deepface.models.spoofing import FasNet
+from deepface.modules.exceptions import UnimplementedError
 
 if TYPE_CHECKING:
     from deepface.models.Demography import Demography
     from deepface.models.Detector import Detector
     from deepface.models.FacialRecognition import FacialRecognition
+
+    cached_models: Dict[str, Dict[str, Any]] = {}
 
 
 class AvailableModels(TypedDict):
@@ -74,10 +77,17 @@ AVAILABLE_MODELS: Final[AvailableModels] = {
         "dlib": DlibDetector.DlibClient,
         "retinaface": RetinaFace.RetinaFaceClient,
         "mediapipe": MediaPipe.MediaPipeClient,
-        "yolov8": YoloFaceDetector.YoloDetectorClientV8n,
+        "yolov8n": YoloFaceDetector.YoloDetectorClientV8n,
+        "yolov8m": YoloFaceDetector.YoloDetectorClientV8m,
+        "yolov8l": YoloFaceDetector.YoloDetectorClientV8l,
         "yolov11n": YoloFaceDetector.YoloDetectorClientV11n,
         "yolov11s": YoloFaceDetector.YoloDetectorClientV11s,
         "yolov11m": YoloFaceDetector.YoloDetectorClientV11m,
+        "yolov11l": YoloFaceDetector.YoloDetectorClientV11l,
+        "yolov12n": YoloFaceDetector.YoloDetectorClientV12n,
+        "yolov12s": YoloFaceDetector.YoloDetectorClientV12s,
+        "yolov12m": YoloFaceDetector.YoloDetectorClientV12m,
+        "yolov12l": YoloFaceDetector.YoloDetectorClientV12l,
         "yunet": YuNet.YuNetClient,
         "fastmtcnn": FastMtCnn.FastMtCnnClient,
         "centerface": CenterFace.CenterFaceClient,
@@ -105,16 +115,16 @@ def build_model(task: str, model_name: str) -> Any:
     global cached_models
 
     if task not in AVAILABLE_MODELS.keys():
-        raise ValueError(f"unimplemented task - {task}")
+        raise UnimplementedError(f"unimplemented task - {task}")
 
     if "cached_models" not in globals():
         cached_models = {current_task: {} for current_task in AVAILABLE_MODELS.keys()}
 
     if cached_models[task].get(model_name) is None:
-        model = AVAILABLE_MODELS[task].get(model_name)
+        model = AVAILABLE_MODELS[task].get(model_name)  # type: ignore[literal-required]
         if model:
             cached_models[task][model_name] = model()
         else:
-            raise ValueError(f"Invalid model_name passed - {task}/{model_name}")
+            raise UnimplementedError(f"Invalid model_name passed - {task}/{model_name}")
 
     return cached_models[task][model_name]
